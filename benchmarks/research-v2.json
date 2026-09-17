@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-17T17:37:44.191Z",
-  "codeCommit": "506e1ae6919ccfa1c78ae6a07f3b79ca89654961",
+  "generatedAt": "2026-09-17T17:45:15.950Z",
+  "codeCommit": "a709aa6fcc901d0341e28c554d1bb53c85c9e875",
   "branch": "claude/baseline-audit",
   "syntheticOnly": true,
   "hypothesis": "Inventory- and toxicity-aware option quotes improve paired terminal P&L and reduce Greek exposure relative to a symmetric unhedged benchmark under the declared synthetic scenario family.",
@@ -1836,8 +1836,8 @@
         {
           "policy": "BASELINE",
           "seeds": 200,
-          "meanNetPnl": -3433.440068190227,
-          "medianNetPnl": -1127.5607533323478,
+          "meanNetPnl": -3434.8583821156485,
+          "medianNetPnl": -1133.0607533323478,
           "p05NetPnl": -17474.751663902338,
           "worstNetPnl": -22717.638137989426,
           "negativeSeedRate": 0.87,
@@ -1846,13 +1846,13 @@
           "meanMaxAbsGamma": 41.09416750921936,
           "meanMaxAbsVega": 7314.792924385716,
           "meanFullSpread": 0.24616004032162128,
-          "meanLiquidationCost": 45.85046975305184,
-          "reconciled": false
+          "meanLiquidationCost": 47.268783678473795,
+          "reconciled": true
         },
         {
           "policy": "DELTA_HEDGED",
           "seeds": 200,
-          "meanNetPnl": -171.13577689516924,
+          "meanNetPnl": -172.55409082059126,
           "medianNetPnl": -176.21972917094834,
           "p05NetPnl": -682.1480952222366,
           "worstNetPnl": -971.1339705430389,
@@ -1862,14 +1862,14 @@
           "meanMaxAbsGamma": 41.09416750921936,
           "meanMaxAbsVega": 7314.792924385716,
           "meanFullSpread": 0.24616004032162128,
-          "meanLiquidationCost": 59.893811094313115,
-          "reconciled": false
+          "meanLiquidationCost": 61.31212501973507,
+          "reconciled": true
         },
         {
           "policy": "INVENTORY_TOXICITY_AWARE",
           "seeds": 200,
-          "meanNetPnl": 105.64925375848308,
-          "medianNetPnl": 163.4391520460496,
+          "meanNetPnl": 104.4774948915503,
+          "medianNetPnl": 161.4391520460496,
           "p05NetPnl": -295.5429450853692,
           "worstNetPnl": -420.85446860334355,
           "negativeSeedRate": 0.355,
@@ -1878,8 +1878,8 @@
           "meanMaxAbsGamma": 24.76652734692957,
           "meanMaxAbsVega": 4433.1083128516775,
           "meanFullSpread": 0.41130957016126,
-          "meanLiquidationCost": 46.408950363196276,
-          "reconciled": false
+          "meanLiquidationCost": 47.5807092301291,
+          "reconciled": true
         }
       ]
     },
