@@ -12,6 +12,15 @@ test('fixed-spread backtest is deterministic and reconciles accounting', () => {
   assert.ok(Number.isFinite(a.meanMarkout));
 });
 
+test('backtest quotes and marks the option, while hedging the underlying separately', () => {
+  const row = runFixedSpreadBacktest(42, .5, 120, true);
+  assert.equal(row.finalMid, row.finalUnderlying);
+  assert.ok(row.finalOptionMark >= 0);
+  assert.notEqual(row.finalOptionMark, row.finalUnderlying);
+  assert.ok(Number.isFinite(row.optionPnl));
+  assert.ok(Number.isFinite(row.hedgePnl));
+});
+
 test('backtest summary exposes costs and worst-case outcomes', () => {
   const summary = summarizeBacktest([1,2,3,4,5,6,7,8,9,10], .5);
   assert.equal(summary.seeds, 10);

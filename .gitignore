@@ -6,3 +6,4 @@ out/
 *.log
 dev-server*.log
 .DS_Store
+*.tsbuildinfo

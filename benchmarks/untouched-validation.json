@@ -2,17 +2,17 @@
   "generatedAt": "2026-08-11",
   "synthetic": true,
   "selectionMetric": "meanNetPnl + 0.25 × P05NetPnl",
-  "selected": "HEDGED + ADVERSE AWARE",
+  "selected": "DELTA HEDGED",
   "trainSeeds": [1, 60],
   "validationSeeds": [61, 80],
   "finalSeeds": [81, 100],
   "train": [
-    { "name": "UNHEDGED BASE", "seeds": 60, "meanNetPnl": 899.38, "p05NetPnl": -13283.28, "worstNetPnl": -21661.76, "negativeSeedRate": 0.40, "meanMaxAbsDelta": 438.3263, "reconciled": true },
-    { "name": "DELTA HEDGED", "seeds": 60, "meanNetPnl": 555.97, "p05NetPnl": -5179.43, "worstNetPnl": -15475.71, "negativeSeedRate": 0.3167, "meanMaxAbsDelta": 0.4942, "reconciled": true },
-    { "name": "HEDGED + ADVERSE AWARE", "seeds": 60, "meanNetPnl": 645.70, "p05NetPnl": -1983.82, "worstNetPnl": -4125.91, "negativeSeedRate": 0.2833, "meanMaxAbsDelta": 0.4865, "reconciled": true }
+    { "name": "UNHEDGED BASE", "seeds": 60, "meanNetPnl": 1730.34, "p05NetPnl": -6723.33, "worstNetPnl": -13272.00, "negativeSeedRate": 0.30, "meanMaxAbsDelta": 438.3263, "reconciled": true },
+    { "name": "DELTA HEDGED", "seeds": 60, "meanNetPnl": 1386.92, "p05NetPnl": -17.80, "worstNetPnl": -1940.12, "negativeSeedRate": 0.0667, "meanMaxAbsDelta": 0.4942, "reconciled": true },
+    { "name": "HEDGED + ADVERSE AWARE", "seeds": 60, "meanNetPnl": 630.77, "p05NetPnl": -363.38, "worstNetPnl": -661.44, "negativeSeedRate": 0.20, "meanMaxAbsDelta": 0.4865, "reconciled": true }
   ],
-  "validation": { "name": "HEDGED + ADVERSE AWARE", "seeds": 20, "meanNetPnl": 1485.12, "p05NetPnl": -3948.00, "worstNetPnl": -6149.14, "negativeSeedRate": 0.30, "meanMaxAbsDelta": 0.4877, "reconciled": true },
-  "final": { "name": "HEDGED + ADVERSE AWARE", "seeds": 20, "meanNetPnl": 973.70, "p05NetPnl": -1048.73, "worstNetPnl": -1099.50, "negativeSeedRate": 0.40, "meanMaxAbsDelta": 0.4939, "reconciled": true },
+  "validation": { "name": "DELTA HEDGED", "seeds": 20, "meanNetPnl": 1484.29, "p05NetPnl": 219.85, "worstNetPnl": -285.39, "negativeSeedRate": 0.05, "meanMaxAbsDelta": 0.4924, "reconciled": true },
+  "final": { "name": "DELTA HEDGED", "seeds": 20, "meanNetPnl": 1316.65, "p05NetPnl": -345.76, "worstNetPnl": -665.25, "negativeSeedRate": 0.15, "meanMaxAbsDelta": 0.4947, "reconciled": true },
   "validationUntouched": true,
   "finalUntouched": true,
   "interpretation": "Policy selection used only the train split. Validation and final outcomes are synthetic out-of-sample diagnostics, not live or historical performance claims."

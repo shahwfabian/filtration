@@ -1,14 +1,41 @@
-"use client";
-import Link from "next/link";
-import { useState } from "react";
+import artifact from "../../benchmarks/research-v2.json";
+import { LabShell, Metric } from "../../components/LabShell";
 
-type Result={name:string;short:string;meanNetPnl:number;worstNetPnl:number;meanFillRate:number;meanMaxAbsDelta:number;meanMaxAbsInventory:number;meanFees:number;meanHedgeFees?:number;meanQuotedSpread?:number;claim:string};
-const results:Result[]=[
- {name:"Unhedged baseline",short:"BASE",meanNetPnl:1497.76,worstNetPnl:-24956.34,meanFillRate:.1157,meanMaxAbsDelta:458.26,meanMaxAbsInventory:6.41,meanFees:6.95,claim:"Highest mean P&L, but inventory dominates tail risk."},
- {name:"Delta-hedged",short:"HEDGED",meanNetPnl:1239.50,worstNetPnl:-15475.71,meanFillRate:.1157,meanMaxAbsDelta:.49,meanMaxAbsInventory:6.41,meanFees:6.95,meanHedgeFees:25.26,claim:"Nearly eliminates residual delta at a measurable hedge-fee cost."},
- {name:"Hedged + adverse-aware",short:"AWARE",meanNetPnl:879.18,worstNetPnl:-6149.14,meanFillRate:.0428,meanMaxAbsDelta:.49,meanMaxAbsInventory:3.06,meanFees:2.57,meanHedgeFees:11.07,meanQuotedSpread:1.1363,claim:"Best tail outcome in this synthetic panel; lower fills and mean P&L are the price."}
-];
-const money=(n:number)=>`${n<0?"-":""}$${Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-const pct=(n:number)=>`${(n*100).toFixed(1)}%`;
-export default function StrategyPage(){const[selected,setSelected]=useState(2);const r=results[selected];return <main><aside><div className="brand"><div className="mark">∑</div><div><strong>PROJECT TBD</strong><small>QUANT LAB / 0.1</small></div></div><nav><Link href="/" className="nav-link">← Pricing Laboratory</Link><div className="nav-current">02 / STRATEGY LABORATORY</div><Link href="/arena" className="nav-link">03 / Trading Arena</Link><Link href="/autopsy" className="nav-link">04 / Decision Autopsy</Link><Link href="/tribunal" className="nav-link">05 / Strategy Tribunal</Link></nav><div className="sidebar-bottom"><div className="status"><span className="dot"/>BENCHMARK ONLINE</div><p>100 seeded runs<br/>Synthetic data only</p></div></aside><section className="workspace"><header><div><p className="eyebrow">COMPARISON / 100 SEEDS / FIXED SCENARIO</p><h1>Strategy Laboratory</h1></div><div className="header-actions"><span className="chip"><span className="dot"/>MEASURED</span><div className="avatar">QT</div></div></header><div className="tribunal-hero panel strategy-hero"><div><p className="eyebrow">RESEARCH QUESTION</p><h2>What does risk control actually buy?</h2><p>Select a policy to inspect the measured tradeoff between average capture, execution, inventory, and tail loss. All three use the same seeded synthetic scenarios.</p></div><div className="verdict-score"><strong>{money(r.worstNetPnl)}</strong><span>selected worst seed</span></div></div><section className="panel strategy-table"><div className="panel-head"><span>STRATEGY COMPARISON</span><em>100 SEEDED RUNS · RECONCILED</em></div><div className="strategy-head"><span>POLICY</span><span>MEAN NET P&L</span><span>WORST SEED</span><span>FILL RATE</span><span>MAX Δ</span></div>{results.map((x,n)=><button key={x.short} className={n===selected?"strategy-row selected":"strategy-row"} onClick={()=>setSelected(n)}><span><b>{x.name}</b><small>{x.short}{x.meanQuotedSpread?` · ${x.meanQuotedSpread.toFixed(2)}¢ avg quote`:""}</small></span><strong>{money(x.meanNetPnl)}</strong><strong className="negative">{money(x.worstNetPnl)}</strong><span>{pct(x.meanFillRate)}</span><span>{x.meanMaxAbsDelta.toFixed(2)}</span></button>)}</section><div className="metrics"><Metric label="SELECTED POLICY" value={r.short} sub={r.name}/><Metric label="MEAN NET P&L" value={money(r.meanNetPnl)} sub="after trading costs" tone="teal"/><Metric label="WORST SEED" value={money(r.worstNetPnl)} sub="tail-risk diagnostic" tone="gold"/><Metric label="MAX RESIDUAL Δ" value={r.meanMaxAbsDelta.toFixed(2)} sub="mean across seeds" tone="teal"/></div><section className="panel strategy-detail"><div className="panel-head"><span>INTERPRETATION</span><em>NO PROFITABILITY CLAIM</em></div><div className="detail-grid"><div><p className="eyebrow">OBSERVATION</p><h3>{r.claim}</h3><p>Fees: {money(r.meanFees)} mean contract fees{r.meanHedgeFees?` + ${money(r.meanHedgeFees)} mean hedge fees`:""}. Mean maximum absolute inventory is {r.meanMaxAbsInventory.toFixed(2)} contracts.</p></div><div className="scope-box"><b>HONEST SCOPE</b><span>Model-generated flow, GBM marks, deterministic exchange, and 100 seeds. Historical data, live routing, and statistical significance are not established.</span></div></div></section><p className="footnote"><span>BENCHMARK · baseline-backtest.json</span><span>STATUS · <b className="ok">RECONCILED</b></span><span>RESEARCH ARTIFACT · SYNTHETIC</span></p></section></main>}
-function Metric({label,value,sub,tone=""}:{label:string,value:string,sub:string,tone?:string}){return <div className={`metric ${tone}`}><span>{label}</span><strong>{value}</strong><small>{sub}</small></div>}
+const labels: Record<string, string> = { BASELINE: "Symmetric unhedged", DELTA_HEDGED: "Symmetric delta-hedged", INVENTORY_TOXICITY_AWARE: "Inventory + toxicity aware" };
+const money = (value: number) => `${value < 0 ? "−" : ""}$${Math.abs(value).toFixed(2)}`;
+const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
+
+export default function StrategyPage() {
+  const comparison = artifact.final.adaptiveVsBaseline;
+  const counts = artifact.evidenceCounts;
+  const attribution = artifact.train.attribution;
+  const finalReconciled = artifact.final.summaries.every(summary => summary.reconciled);
+  return <LabShell activePath="/strategy" eyebrow="POLICY COMPARISON / COMMON RANDOM NUMBERS" title="Policy Comparison" status="ARTIFACT-BACKED">
+    <section className="tribunal-hero panel"><div><p className="eyebrow">HELD-OUT RESULT</p><h2>{money(comparison.observedMeanDifference)} paired mean improvement</h2><p>Every policy trades the same {artifact.seedManifest.final.length} held-out sessions, so each session gives one paired difference. Net P&L includes option fees, hedge spread, impact, latency, and forced liquidation at the end.</p></div><div className="verdict-score"><strong>{pct(comparison.probabilityOfImprovement)}</strong><span>sessions where adaptive beat unhedged</span></div></section>
+    <section className="panel strategy-table">
+      <div className="panel-head"><span>FINAL POLICY PANEL</span><em>{artifact.seedManifest.final.length} HELD-OUT SESSIONS</em></div>
+      <div className="strategy-head"><span>POLICY</span><span>MEAN NET P&amp;L</span><span>P05 / WORST</span><span>NEGATIVE</span><span>MAX |Δ|</span></div>
+      {artifact.final.summaries.map(summary => <div className={summary.policy === "INVENTORY_TOXICITY_AWARE" ? "strategy-row selected" : "strategy-row"} key={summary.policy}>
+        <span><b>{labels[summary.policy]}</b><small>{summary.policy}</small></span><strong>{money(summary.meanNetPnl)}</strong><strong className="negative">{money(summary.p05NetPnl)}<small>{money(summary.worstNetPnl)} worst</small></strong><span>{pct(summary.negativeSeedRate)}</span><span>{summary.meanMaxAbsDelta.toFixed(1)}</span>
+      </div>)}
+    </section>
+    <section className="panel attribution-table">
+      <div className="panel-head"><span>WHERE THE IMPROVEMENT COMES FROM</span><em>TRAINING SESSIONS ONLY · {attribution.seeds} PAIRED SEEDS</em></div>
+      <div className="attribution-head"><span>QUESTION</span><span>MEAN DIFFERENCE</span><span>95% PAIRED CI</span><span>WINS</span></div>
+      {attribution.steps.map(step => <div className="attribution-row" key={step.id}>
+        <span><b>{step.question}</b><small>{step.candidate} ({money(step.candidateMeanNetPnl)}) minus {step.benchmark} ({money(step.benchmarkMeanNetPnl)})</small></span>
+        <strong className={step.confidenceInterval[0] > 0 ? "ok" : ""}>{money(step.observedMeanDifference)}</strong>
+        <strong>{money(step.confidenceInterval[0])} to {money(step.confidenceInterval[1])}</strong>
+        <span>{pct(step.probabilityOfImprovement)}</span>
+      </div>)}
+      <p className="attribution-note">Reading: hedging and the adaptive policy's wider average quote explain the gain. A symmetric hedged quote of the same average width (±{money(attribution.matchedHalfSpread)}) is statistically indistinguishable, and the inventory skew is smaller than one tick. This breakdown uses development seeds only; the held-out sessions were not reused to test it.</p>
+    </section>
+    <div className="metrics">
+      <Metric label="PAIRED 95% CI" value={money(comparison.confidenceInterval[0])} sub={`to ${money(comparison.confidenceInterval[1])}`} tone="teal" />
+      <Metric label="RESAMPLES" value={comparison.resamples.toLocaleString()} sub="paired bootstrap indices" />
+      <Metric label="DECLARED BENCHMARK" value="BASELINE" sub="fixed before inference" tone="gold" />
+      <Metric label="RECONCILIATION" value={finalReconciled ? "PASSED" : "FAILED"} sub={`${counts.reconciledRunCount.toLocaleString()} / ${counts.expectedRunCount.toLocaleString()} ledger-checked runs`} tone={finalReconciled ? "teal" : "gold"} />
+    </div>
+    <p className="footnote"><span>SOURCE · benchmarks/research-v2.json</span><span>CONFIG · {artifact.configHash.slice(0, 12)}</span><span>SYNTHETIC MECHANISM TEST</span></p>
+  </LabShell>;
+}

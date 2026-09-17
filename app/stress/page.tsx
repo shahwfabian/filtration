@@ -1,22 +1,12 @@
-"use client";
+import artifact from "../../benchmarks/research-v2.json";
+import { LabShell } from "../../components/LabShell";
+import { StressClient } from "./StressClient";
 
-import Link from "next/link";
-import { useState } from "react";
-
-type Stress={name:string;description:string;mean:number;ci:[number,number];p05:number;worst:number;negative:number;fill:number;delta:number;settings:string};
-const cases:Stress[]=[
- {name:"BASE",description:"Reference synthetic regime",mean:879.18,ci:[253.03,1692.53],p05:-1994.59,worst:-6149.14,negative:.31,fill:.0428,delta:.4882,settings:"σ 20% · flow λ 3.0 · latency 1 · fee $0.25"},
- {name:"HIGH VOL",description:"Volatility doubled",mean:1092.40,ci:[119.05,2325.48],p05:-4675.40,worst:-12441.52,negative:.38,fill:.0430,delta:.4863,settings:"σ 40% · flow λ 3.0 · latency 1 · fee $0.25"},
- {name:"THIN FLOW",description:"Arrival intensity reduced; more fills",mean:2479.29,ci:[1572.35,3394.23],p05:-6316.55,worst:-11353.10,negative:.16,fill:.1916,delta:.4940,settings:"σ 20% · flow λ 1.5 · latency 1 · fee $0.25"},
- {name:"SLOW VENUE",description:"Two-tick order latency",mean:838.10,ci:[253.92,1749.34],p05:-2426.48,worst:-6375.30,negative:.34,fill:.0428,delta:.4838,settings:"σ 20% · flow λ 3.0 · latency 2 · fee $0.25"},
- {name:"EXPENSIVE FEES",description:"Four-times contract fee",mean:871.48,ci:[277.57,1805.70],p05:-2011.13,worst:-6154.39,negative:.31,fill:.0428,delta:.4882,settings:"σ 20% · flow λ 3.0 · latency 1 · fee $1.00"}
- ,{name:"PERSISTENT TOXIC FLOW",description:"Persistent one-sided informed-flow regime",mean:253.28,ci:[-218.15,823.87],p05:-2563.35,worst:-7543.04,negative:.47,fill:.0256,delta:.4932,settings:"σ 20% · flow λ 3.0 · latency 1 · persistence 85% · buy bias 35%"}
-];
-const money=(n:number)=>`${n<0?"-":""}$${Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-const pct=(n:number)=>`${(n*100).toFixed(1)}%`;
-
-export default function StressPage(){
-  const [selected,setSelected]=useState(0); const s=cases[selected];
-  return <main><aside><div className="brand"><div className="mark">∑</div><div><strong>PROJECT TBD</strong><small>QUANT LAB / 0.1</small></div></div><nav><Link href="/" className="nav-link">← Pricing Laboratory</Link><Link href="/strategy" className="nav-link">02 / Strategy Laboratory</Link><div className="nav-current">06 / STRESS LABORATORY</div><Link href="/tribunal" className="nav-link">→ Strategy Tribunal</Link></nav><div className="sidebar-bottom"><div className="status"><span className="dot"/>STRESS ENGINE ONLINE</div><p>100 common seeds<br/>Synthetic data only</p></div></aside><section className="workspace"><header><div><p className="eyebrow">SENSITIVITY / 100 COMMON SEEDS / HEDGED + AWARE</p><h1>Stress Laboratory</h1></div><div className="header-actions"><span className="chip"><span className="dot"/>SCENARIO TEST</span><div className="avatar">QT</div></div></header><div className="tribunal-hero panel"><div><p className="eyebrow">SELECTED ENVIRONMENT · {s.name}</p><h2>{s.description}</h2><p>{s.settings}. The policy and seed IDs stay fixed while one environment assumption changes.</p></div><div className="verdict-score"><strong>{money(s.worst)}</strong><span>selected worst seed</span></div></div><section className="panel strategy-table"><div className="panel-head"><span>DECLARED STRESS CASES</span><em>IDENTICAL SEEDS · RECONCILED</em></div><div className="strategy-head"><span>CASE</span><span>MEAN ± BOOTSTRAP</span><span>P05</span><span>NEGATIVE SEEDS</span><span>WORST</span></div>{cases.map((x,n)=><button key={x.name} className={n===selected?"strategy-row selected":"strategy-row"} onClick={()=>setSelected(n)}><span><b>{x.name}</b><small>{x.description}</small></span><strong>{money(x.mean)}<small>{money(x.ci[0])} … {money(x.ci[1])}</small></strong><strong className="negative">{money(x.p05)}</strong><span>{pct(x.negative)}</span><strong className="negative">{money(x.worst)}</strong></button>)}</section><div className="metrics"><Metric label="MEAN NET P&L" value={money(s.mean)} sub="synthetic policy result" tone="teal"/><Metric label="95% RESAMPLE RANGE" value={`${money(s.ci[0])} …`} sub={money(s.ci[1])} tone="gold"/><Metric label="NEGATIVE-SEED RATE" value={pct(s.negative)} sub="of 100 common seeds"/><Metric label="MEAN RESIDUAL Δ" value={s.delta.toFixed(4)} sub={`fill rate ${pct(s.fill)}`} tone="teal"/></div><section className="panel strategy-detail"><div className="panel-head"><span>INTERPRETATION</span><em>BOOTSTRAP IS NOT LIVE CONFIDENCE</em></div><div className="detail-grid"><div><p className="eyebrow">WHAT CHANGED</p><h3>{s.name} · {s.description}</h3><p>The same 100 deterministic seeds are replayed under this environment. The interval is a resampling diagnostic over those simulated outcomes, not evidence of independent market observations or deployable profitability.</p></div><div className="scope-box"><b>TRIBUNAL-READY EVIDENCE</b><span>Scenario assumptions are declared, accounting reconciles across all seeds, and the result is stored in benchmarks/stress-suite.json.</span></div></div></section><p className="footnote"><span>BENCHMARK · stress-suite.json</span><span>STATUS · <b className="ok">RECONCILED</b></span><span>RESEARCH ARTIFACT · SYNTHETIC</span></p></section></main>;
+export default function StressPage() {
+  const cases = artifact.stresses.map(stress => ({
+    name: stress.name,
+    summaries: stress.summaries,
+    changes: Object.entries(stress.config).filter(([key, value]) => value !== artifact.baseConfig[key as keyof typeof artifact.baseConfig]).map(([key, value]) => `${key}=${value}`),
+  }));
+  return <LabShell activePath="/stress" eyebrow="HOSTILE ENVIRONMENTS / IDENTICAL FINAL SEEDS" title="Stress Laboratory" status="FAILURES INCLUDED"><StressClient cases={cases} /></LabShell>;
 }
-function Metric({label,value,sub,tone=""}:{label:string,value:string,sub:string,tone?:string}){return <div className={`metric ${tone}`}><span>{label}</span><strong>{value}</strong><small>{sub}</small></div>}

@@ -1,5 +1,5 @@
 {
-  "name": "project-tbd",
+  "name": "filtration",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,9 @@
     "replay": "node --experimental-strip-types scripts/run-replay.mjs",
     "stress": "node --experimental-strip-types scripts/run-stress.mjs",
     "validate": "node --experimental-strip-types scripts/run-validation.mjs",
-    "inference": "node --experimental-strip-types scripts/run-inference.mjs"
+    "inference": "node --experimental-strip-types scripts/run-inference.mjs",
+    "dependence": "node --experimental-strip-types scripts/run-dependence.mjs",
+    "research:v2": "node --experimental-strip-types scripts/run-research-v2.mjs"
   },
   "dependencies": {
     "next": "15.5.9",

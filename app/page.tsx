@@ -1,20 +1,93 @@
-"use client";
-import { useMemo, useState } from "react";
-import { bs, gbmPath, martingaleDiagnostic, monteCarlo, type Inputs } from "../lib/quant";
+import Link from "next/link";
 
-const initial:Inputs={spot:100,strike:100,maturity:30/365,vol:.22,rate:.05,dividend:0,paths:10000,seed:42};
-const money=(n:number)=>`$${n.toFixed(2)}`, pct=(n:number)=>`${(n*100).toFixed(1)}%`;
-function Spark({data,color="#65d6bd",label}:{data:number[],color?:string,label:string}) { const min=Math.min(...data),max=Math.max(...data), range=max-min||1; const points=data.map((v,k)=>`${(k/(data.length-1))*100},${96-((v-min)/range)*82}`).join(" "); return <div className="spark-wrap"><svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label={label}><polyline points={points} fill="none" stroke={color} strokeWidth="1.8" vectorEffect="non-scaling-stroke" /></svg><div className="spark-label"><span>{money(min)}</span><span>{money(max)}</span></div></div> }
-function Field({label,value,onChange,step="any",suffix}:{label:string,value:number,onChange:(n:number)=>void,step?:string,suffix?:string}) { return <label className="field"><span>{label}</span><div className="input-wrap"><input type="number" value={value} step={step} onChange={e=>onChange(Number(e.target.value))}/>{suffix&&<i>{suffix}</i>}</div></label> }
+import artifact from "../benchmarks/research-v2.json";
+import { LabShell, Metric } from "../components/LabShell";
 
-export default function Home(){
- const [view,setView]=useState("Pricing Laboratory"),[i,setI]=useState(initial),[measure,setMeasure]=useState<"P"|"Q">("Q"),[running,setRunning]=useState(false),[sessionPnl,setSessionPnl]=useState(184.2);
- const price=useMemo(()=>bs(i),[i]), mc=useMemo(()=>monteCarlo(i),[i]), path=useMemo(()=>gbmPath(i,measure),[i,measure]), diag=useMemo(()=>martingaleDiagnostic(i),[i]);
- const update=(key:keyof Inputs)=>(n:number)=>setI(x=>({...x,[key]:n}));
- const nav=["Trading Arena","Pricing Laboratory","Strategy Laboratory","Decision Autopsy","Strategy Tribunal","Methodology"];
- const go=(x:string)=>{const routes:Record<string,string>={"Trading Arena":"/arena","Strategy Laboratory":"/strategy","Decision Autopsy":"/autopsy","Strategy Tribunal":"/tribunal"}; if(routes[x]) window.location.assign(routes[x]); else setView(x)};
- return <main><aside><div className="brand"><div className="mark">∑</div><div><strong>PROJECT TBD</strong><small>QUANT LAB / 0.1</small></div></div><nav>{nav.map((x,idx)=><button key={x} className={view===x?"active":""} onClick={()=>setView(x)}><span className="nav-index">0{idx+1}</span>{x}{x==="Trading Arena"&&<b className="live-dot"/>}</button>)}</nav><div className="sidebar-bottom"><div className="status"><span className="dot"/>ENGINE ONLINE</div><p>Educational simulator<br/>Synthetic data only</p><div className="seed">SEED <b>{i.seed}</b></div></div></aside><section className="workspace"><header><div><p className="eyebrow">RESEARCH WORKBENCH / SESSION 014</p><h1>{view}</h1></div><div className="header-actions"><span className="chip"><span className="dot"/>SYNTHETIC</span><button className="icon-btn" aria-label="Settings">⚙</button><div className="avatar">QT</div></div></header>{view==="Pricing Laboratory"?<Pricing i={i} update={update} price={price} mc={mc} path={path} measure={measure} setMeasure={setMeasure} diag={diag}/>:<Placeholder view={view} pnl={sessionPnl} running={running} setRunning={setRunning} setPnl={setSessionPnl} price={price}/>}</section></main>
+const money = (value: number) => `${value < 0 ? "−" : ""}$${Math.abs(value).toFixed(2)}`;
+const percent = (value: number) => `${(value * 100).toFixed(1)}%`;
+const interval = ([low, high]: number[]) => `[${money(low)}, ${money(high)}]`;
+
+export default function OverviewPage() {
+  const summary = (policy: string) => artifact.final.summaries.find(row => row.policy === policy)!;
+  const adaptive = summary("INVENTORY_TOXICITY_AWARE");
+  const baseline = summary("BASELINE");
+  const hedged = summary("DELTA_HEDGED");
+  const comparison = artifact.final.adaptiveVsBaseline;
+  const attribution = artifact.train.attribution;
+  const step = (id: string) => attribution.steps.find(row => row.id === id)!;
+  const widthMatched = step("BEYOND_SPREAD_WIDTH");
+  const skew = step("INVENTORY_SKEW");
+  const extreme = artifact.stresses.find(stress => stress.name === "EXTREME_TOXICITY")!.summaries.find(row => row.policy === "INVENTORY_TOXICITY_AWARE")!;
+  const counts = artifact.evidenceCounts;
+  const allReconciled = counts.reconciledRunCount === counts.expectedRunCount;
+  const sessionMinutes = artifact.baseConfig.steps;
+
+  const findings = [
+    {
+      tag: "HEDGING",
+      title: "Delta hedging removes most of the left tail.",
+      body: `Unhedged quoting lost money in ${percent(baseline.negativeSeedRate)} of held-out sessions (worst ${money(baseline.worstNetPnl)}). Hedging through a costly underlying market cut that to ${percent(hedged.negativeSeedRate)} (worst ${money(hedged.worstNetPnl)}).`,
+    },
+    {
+      tag: "HEADLINE",
+      title: `The adaptive quoter earns ${money(comparison.observedMeanDifference)} more per session than unhedged quoting.`,
+      body: `Paired over ${artifact.seedManifest.final.length} held-out sessions: 95% bootstrap interval ${interval(comparison.confidenceInterval)}, better in ${percent(comparison.probabilityOfImprovement)} of sessions.`,
+    },
+    {
+      tag: "ATTRIBUTION",
+      title: "But the extra edge comes from quoting wider, not from being smarter.",
+      body: `On the ${attribution.seeds} training sessions, a plain hedged quote at ±${money(attribution.matchedHalfSpread)} does as well (difference ${money(widthMatched.observedMeanDifference)}, interval ${interval(widthMatched.confidenceInterval)}). The inventory skew moves quotes by less than one tick (${money(skew.observedMeanDifference)}).`,
+    },
+    {
+      tag: "LIMITS",
+      title: "Hostile flow still breaks it, so deployment stays blocked.",
+      body: `With persistent, highly informed flow the adaptive quoter loses money in ${percent(extreme.negativeSeedRate)} of sessions (5th percentile ${money(extreme.p05NetPnl)}). Everything here is synthetic and says nothing about live profitability.`,
+    },
+  ];
+
+  return <LabShell activePath="/" eyebrow="SYNTHETIC OPTIONS MARKET MAKING / RESEARCH PROTOCOL V2" title="Research Overview" status="EVIDENCE GENERATED">
+    <section className="research-hero panel">
+      <div>
+        <p className="eyebrow">RESEARCH QUESTION</p>
+        <h2>How should an option market maker quote when inventory risk and informed flow arrive together?</h2>
+        <p>A simulated market maker quotes a 30-day at-the-money call for {sessionMinutes}-minute sessions. Some customers are noise traders; others know which way the stock is about to move. Three quoting policies trade the exact same {artifact.seedManifest.total.toLocaleString()} sessions, so any difference comes from the policy rather than from luck.</p>
+        <p>The option is priced with Black–Scholes under the risk-neutral measure, while the stock moves under a separate real-world model. Quotes fill after a delay, hedges pay spread, impact, and fees, and every position is closed at the end. The name <strong>Filtration</strong> refers to the rule every policy obeys: it may only use information available at the moment it quotes.</p>
+        <div className="hero-actions">
+          <Link href="/strategy" className="primary">See the policy comparison</Link>
+          <Link href="/arena" className="secondary">Try quoting yourself</Link>
+        </div>
+      </div>
+      <div className="protocol-stamp">
+        <span>HELD-OUT SESSIONS</span>
+        <strong>{artifact.seedManifest.final.length}</strong>
+        <small>evaluated once, never tuned on</small>
+        <code>{artifact.seedManifest.hash.slice(0, 12)}</code>
+      </div>
+    </section>
+    <section className="panel findings-panel">
+      <div className="panel-head"><span>WHAT THE EVIDENCE SAYS</span><em>EVERY NUMBER IS READ FROM THE GENERATED ARTIFACT</em></div>
+      <div className="findings-grid">
+        {findings.map(finding => <article key={finding.tag}><span>{finding.tag}</span><h3>{finding.title}</h3><p>{finding.body}</p></article>)}
+      </div>
+    </section>
+    <div className="metrics">
+      <Metric label="PAIRED P&L DIFFERENCE" value={money(comparison.observedMeanDifference)} sub={`adaptive minus unhedged, 95% CI ${money(comparison.confidenceInterval[0])} to ${money(comparison.confidenceInterval[1])}`} tone="teal" />
+      <Metric label="WIDTH-MATCHED DIFFERENCE" value={money(widthMatched.observedMeanDifference)} sub={`adaptive minus hedged ±${money(attribution.matchedHalfSpread)}, training sessions`} tone="gold" />
+      <Metric label="UNHEDGED LOSING SESSIONS" value={percent(baseline.negativeSeedRate)} sub={`hedged: ${percent(hedged.negativeSeedRate)} · adaptive: ${percent(adaptive.negativeSeedRate)}`} />
+      <Metric label="ADAPTIVE MAX DELTA" value={adaptive.meanMaxAbsDelta.toFixed(1)} sub={`shares on average, vs ${baseline.meanMaxAbsDelta.toFixed(1)} unhedged`} />
+    </div>
+    <section className="panel architecture-panel">
+      <div className="panel-head"><span>ONE SIMULATED STEP</span><em>REPEATED EVERY MINUTE OF THE SESSION</em></div>
+      <div className="architecture-flow">
+        {["Stock price S(t) moves", "Option value + Greeks", "Quote around a reservation price", "Customer fills the delayed quote", "Hedge the delta at a cost", "Close everything at the end"].map((label, index) => <div key={label}><span>{String(index + 1).padStart(2, "0")}</span><strong>{label}</strong></div>)}
+      </div>
+    </section>
+    <section className="research-grid">
+      <article className="panel research-card"><span>POLICY COMPARISON</span><h3>Three policies, same sessions</h3><p>Held-out results, and a step-by-step breakdown of where the improvement comes from.</p><Link href="/strategy" className="card-link">Open →</Link></article>
+      <article className="panel research-card"><span>STRESS LABORATORY</span><h3>Where it fails</h3><p>Nine environments, including the hostile ones that block deployment.</p><Link href="/stress" className="card-link">Open →</Link></article>
+      <article className="panel research-card"><span>EVIDENCE TRIBUNAL</span><h3>Automated audit</h3><p>Findings recomputed from the artifact: hashes, reconciliation counts, tail risk, attribution.</p><Link href="/tribunal" className="card-link">Open →</Link></article>
+      <article className="panel research-card"><span>TRADING ARENA</span><h3>Quote a round yourself</h3><p>Choose a quote before the next customer arrives, then see what you would have regretted.</p><Link href="/arena" className="card-link">Open →</Link></article>
+    </section>
+    <p className="footnote"><span>AUTHOR · SHAH WASIF FABIAN</span><span>CONFIG · {artifact.configHash.slice(0, 12)}</span><span>RECONCILED RUNS · <b className={allReconciled ? "ok" : "negative"}>{counts.reconciledRunCount.toLocaleString()} / {counts.expectedRunCount.toLocaleString()}</b></span></p>
+  </LabShell>;
 }
-function Pricing({i,update,price,mc,path,measure,setMeasure,diag}:{i:Inputs,update:(k:keyof Inputs)=>(n:number)=>void,price:ReturnType<typeof bs>,mc:ReturnType<typeof monteCarlo>,path:number[],measure:"P"|"Q",setMeasure:(x:"P"|"Q")=>void,diag:ReturnType<typeof martingaleDiagnostic>}){return <><div className="toolbar"><div className="toolbar-title"><span className="signal"/>Benchmark configuration</div><button className="run" onClick={()=>update("seed")(i.seed+1)}>↻ Re-run seeded experiment</button></div><div className="lab-grid"><section className="panel config"><div className="panel-head"><span>01 / PARAMETERS</span><em>GBM + EUROPEAN CALL</em></div><div className="fields"><Field label="Spot S₀" value={i.spot} onChange={update("spot")} suffix="$"/><Field label="Strike K" value={i.strike} onChange={update("strike")} suffix="$"/><Field label="Maturity T" value={i.maturity*365} onChange={n=>update("maturity")(n/365)} suffix="DAYS"/><Field label="Volatility σ" value={i.vol*100} onChange={n=>update("vol")(n/100)} step="0.01" suffix="%"/><Field label="Rate r" value={i.rate*100} onChange={n=>update("rate")(n/100)} step="0.01" suffix="%"/><Field label="Paths M" value={i.paths} onChange={update("paths")} step="100"/><Field label="Seed" value={i.seed} onChange={update("seed")} step="1"/></div><div className="measure"><span>Measure</span><button className={measure==="P"?"selected":""} onClick={()=>setMeasure("P")}>P · physical</button><button className={measure==="Q"?"selected":""} onClick={()=>setMeasure("Q")}>Q · risk-neutral</button></div><p className="helper">P forecasts real-world drift μ. Q replaces it with <b>r − q</b> so discounted tradable prices satisfy no-arbitrage martingale conditions.</p></section><section className="panel chart-panel"><div className="panel-head"><span>02 / PATH GENERATION</span><em>{measure} MEASURE · SEEDED</em></div><div className="chart-title"><div><strong>Simulated spot paths</strong><small>Exact GBM discretization · 30 steps</small></div><span className="legend"><i/>spot path <i className="orange"/>terminal distribution</span></div><Spark data={path} label={`${measure} measure simulated spot path`} /><div className="chart-foot"><span>S₀ {money(i.spot)}</span><span>T {i.maturity.toFixed(3)} yr</span><span>terminal {money(path.at(-1)??0)}</span></div></section></div><div className="metrics"><Metric label="BLACK–SCHOLES CALL" value={money(price.call)} sub="analytic benchmark"/><Metric label="MONTE CARLO ESTIMATE" value={money(mc.price)} sub={`95% CI ${money(mc.low)} — ${money(mc.high)}`} tone="teal"/><Metric label="SAMPLING ERROR" value={money(mc.se)} sub={`O(M⁻¹/²) · ${mc.paths.toLocaleString()} paths`} tone="gold"/><Metric label="PARITY RESIDUAL" value={money(price.call-price.put-i.spot*Math.exp(-i.dividend*i.maturity)+i.strike*Math.exp(-i.rate*i.maturity))} sub="C − P − S e⁻qT + K e⁻rT" tone="teal"/></div><div className="lower-grid"><section className="panel"><div className="panel-head"><span>03 / ANALYTIC DIAGNOSTICS</span><em>BLACK–SCHOLES</em></div><div className="greeks">{[["DELTA",price.delta],["GAMMA",price.gamma],["VEGA",price.vega],["THETA",price.theta],["RHO",price.rho]].map(([k,v])=><div key={k}><span>{k}</span><b>{Number(v).toFixed(4)}</b></div>)}</div><div className="equation">C = S e<sup>−qT</sup> N(d₁) − K e<sup>−rT</sup> N(d₂)</div><p className="helper">Analytic value is {price.call>=mc.low&&price.call<=mc.high?<span className="ok">inside</span>:<span className="warn">outside</span>} the reported 95% interval. This is the benchmark question: does finite sampling recover the no-arbitrage value?</p></section><section className="panel"><div className="panel-head"><span>04 / MARTINGALE CHECK</span><em>DISCOUNTED UNDERLYING</em></div><div className="diagnostic"><div className="diag-ring"><span>{Math.abs(diag.error/diag.expected*100).toFixed(1)}%</span><small>error</small></div><div><strong>Q diagnostic</strong><p>E[S₀e<sup>−qT</sup>] {money(diag.expected)}</p><p>Observed discounted {money(diag.observed)}</p><span className="ok">● reproducible · seed {i.seed}</span></div></div><div className="formula">V<sub>t</sub> = e<sup>−r(T−t)</sup> E<sup>Q</sup>[ Φ(S<sub>T</sub>) | F<sub>t</sub> ]</div></section></div><div className="footnote"><span>LAST RUN · 10 AUG 2026, 16:32:08 CT</span><span>ENGINE · JavaScript reference implementation</span><span>STATUS · <b className="ok">VALIDATED</b></span></div></>}
-function Metric({label,value,sub,tone=""}:{label:string,value:string,sub:string,tone?:string}){return <div className={`metric ${tone}`}><span>{label}</span><strong>{value}</strong><small>{sub}</small></div>}
-function Placeholder({view,pnl,running,setRunning,setPnl,price}:{view:string,pnl:number,running:boolean,setRunning:(x:boolean)=>void,setPnl:(x:number)=>void,price:{call:number}}){const arena=view==="Trading Arena";return <><div className="toolbar"><div className="toolbar-title"><span className="signal"/>{arena?"LIVE SESSION / SYNTHETIC SCENARIO":"RESEARCH MODULE"}</div><button className="run" onClick={()=>{setRunning(!running);setPnl(pnl+(running?-12.4:8.7))}}>{running?"■ Pause session":"▶ Start session"}</button></div><div className="placeholder-grid"><section className="panel hero-panel"><div className="panel-head"><span>{arena?"MARKET-MAKING ARENA":"MODULE BRIEF"}</span><em>{arena?"SCENARIO · VOLATILITY INCREASE":"IMPLEMENTATION STATUS"}</em></div><div className="hero-copy"><p className="eyebrow">{arena?"DECISION LOOP":"NEXT EVIDENCE LAYER"}</p><h2>{arena?"Quote uncertainty. Then defend the book.":view}</h2><p>{arena?"A deterministic exchange session is staged around the live pricing benchmark. Submit a quote, observe queue-aware fills, and watch inventory pressure move the reservation value.":"This surface is connected to the same seeded pricing engine. The next vertical slice will persist decisions, fills, and counterfactual utilities for replay."}</p><div className="hero-actions"><button className="primary" onClick={()=>setRunning(!running)}>{arena?(running?"Pause market":"Enter market"):"View implementation brief"}</button><span className="tag">{arena?"NO HIDDEN REGIME":"HONEST SCOPE"}</span></div></div></section><section className="panel snapshot"><div className="panel-head"><span>SESSION SNAPSHOT</span><em>LIVE STATE</em></div><div className="book"><div><small>UNDERLYING MID</small><b>$100.18</b></div><div><small>OPTION FAIR VALUE</small><b>{money(price.call)}</b></div><div><small>INVENTORY Δ-EQ</small><b className="negative">−12.0</b></div><div><small>NET P&L</small><b className="positive">{money(pnl)}</b></div></div><Spark data={[98,100,99,102,101,103,102,105,104,106]} color="#e1b66a" label="synthetic session equity curve"/></section></div><section className="panel evidence"><div className="panel-head"><span>WHAT THIS SCREEN WILL PROVE</span><em>ACCEPTANCE CRITERIA</em></div><div className="evidence-row">{["Orders cannot fill before arrival latency.","Inventory is measured in delta-equivalent exposure.","Every action retains its feasible alternatives.","Synthetic data is labeled and replayable."].map((x,n)=><div key={x}><b>0{n+1}</b><span>{x}</span></div>)}</div></section></>}

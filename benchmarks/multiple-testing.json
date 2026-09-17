@@ -4,12 +4,12 @@
   "seeds": 100,
   "resamples": 2000,
   "candidateMeans": [
-    { "name": "UNHEDGED BASE", "meanNetPnl": 1497.76 },
-    { "name": "DELTA HEDGED", "meanNetPnl": 1239.50 },
-    { "name": "HEDGED + ADVERSE AWARE", "meanNetPnl": 879.18 }
+    { "name": "UNHEDGED BASE", "meanNetPnl": 1650.61 },
+    { "name": "DELTA HEDGED", "meanNetPnl": 1392.34 },
+    { "name": "HEDGED + ADVERSE AWARE", "meanNetPnl": 643.88 }
   ],
-  "observedMaxMean": 1497.76,
-  "bootstrapPValue": 0.0415,
+  "observedMaxMean": 1650.61,
+  "bootstrapPValue": 0.0010,
   "reconciled": true,
   "method": "Centered max-mean bootstrap over candidate family",
   "interpretation": "Synthetic model-selection diagnostic only. The p-value is not a live-performance, historical-alpha, or independent-observation claim."

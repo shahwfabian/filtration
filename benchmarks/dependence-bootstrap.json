@@ -1,0 +1,11 @@
+{
+  "generatedAt": "2026-08-11",
+  "synthetic": true,
+  "orderedObservations": 240,
+  "lag1Autocorrelation": 0.8508,
+  "meanBlockLength": 12,
+  "resamples": 2000,
+  "meanCI": [-0.1167, 0.1207],
+  "method": "Stationary bootstrap with geometric blocks",
+  "interpretation": "Synthetic dependence-tool smoke test. The series is not market data and the interval is not a performance claim."
+}

@@ -3,11 +3,11 @@
   "synthetic": true,
   "seeds": 100,
   "strategies": [
-    { "spread": 0.25, "hedged": false, "meanNetPnl": 24.63, "meanFees": 14.45, "meanFillRate": 0.2409, "meanMaxAbsInventory": 9.29, "meanMaxAbsDelta": 689.89, "worstNetPnl": -54405.94, "reconciled": true },
-    { "spread": 0.5, "hedged": false, "meanNetPnl": 1497.76, "meanFees": 6.95, "meanFillRate": 0.1157, "meanMaxAbsInventory": 6.41, "meanMaxAbsDelta": 458.26, "worstNetPnl": -24956.34, "reconciled": true },
-    { "spread": 1, "hedged": false, "meanNetPnl": -16.54, "meanFees": 1.6, "meanFillRate": 0.0268, "meanMaxAbsInventory": 2.75, "meanMaxAbsDelta": 208.59, "worstNetPnl": -11862.84, "reconciled": true },
-    { "spread": 0.5, "hedged": true, "adverseAware": false, "meanNetPnl": 1239.5, "meanFees": 6.95, "meanHedgeFees": 25.26, "meanFillRate": 0.1157, "meanMaxAbsInventory": 6.41, "meanMaxAbsDelta": 0.49, "worstNetPnl": -15475.71, "reconciled": true },
-    { "spread": 0.5, "hedged": true, "adverseAware": true, "meanNetPnl": 879.18, "meanFees": 2.57, "meanHedgeFees": 11.07, "meanFillRate": 0.0428, "meanMaxAbsInventory": 3.06, "meanMaxAbsDelta": 0.49, "meanQuotedSpread": 1.1363, "meanAdverseProbability": 0.6363, "worstNetPnl": -6149.14, "reconciled": true }
+    { "spread": 0.25, "hedged": false, "meanNetPnl": 797.93, "meanFees": 14.45, "meanFillRate": 0.2409, "meanMaxAbsInventory": 9.29, "meanMaxAbsDelta": 689.89, "worstNetPnl": -39795.53, "reconciled": true },
+    { "spread": 0.5, "hedged": false, "meanNetPnl": 1650.61, "meanFees": 6.95, "meanFillRate": 0.1157, "meanMaxAbsInventory": 6.41, "meanMaxAbsDelta": 458.26, "worstNetPnl": -21053.45, "reconciled": true },
+    { "spread": 1, "hedged": false, "meanNetPnl": 247.82, "meanFees": 1.61, "meanFillRate": 0.0268, "meanMaxAbsInventory": 2.75, "meanMaxAbsDelta": 208.59, "worstNetPnl": -10027.95, "reconciled": true },
+    { "spread": 0.5, "hedged": true, "adverseAware": false, "meanNetPnl": 1392.34, "meanFees": 6.95, "meanHedgeFees": 25.26, "meanFillRate": 0.1157, "meanMaxAbsInventory": 6.41, "meanMaxAbsDelta": 0.49, "worstNetPnl": -1940.12, "reconciled": true },
+    { "spread": 0.5, "hedged": true, "adverseAware": true, "meanNetPnl": 643.88, "meanFees": 2.57, "meanHedgeFees": 11.07, "meanFillRate": 0.0428, "meanMaxAbsInventory": 3.06, "meanMaxAbsDelta": 0.49, "meanQuotedSpread": 1.1363, "meanAdverseProbability": 0.6363, "worstNetPnl": -734.55, "reconciled": true }
   ],
   "interpretation": "Synthetic strategy comparison only. Hedging and adverse-aware quoting trade mean P&L and fill rate for lower residual delta and less severe worst-seed loss; these are not live or historical performance claims."
 }
