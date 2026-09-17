@@ -49,11 +49,11 @@ The original artifact is preserved in git at `76dcfd9:benchmarks/research-v2.jso
    `netPnl` with the identical expression used to compute it; `finalOptionInventory`/`finalUnderlyingInventory`
    were the literal `0`; `policySeedCount` and `policiesUseCommonSeeds` were constants in the runner.
    The "3,000 / 3,000 reconciled" evidence and the UI labels "RECONCILED"/"PASSED" were therefore assertions.
-2. **Sub-tick liquidation cash is dropped** (exposed by fix 1; **not fixed**). When a long call is worth less
-   than one tick, `simulate.ts` sells at `max(tick, call − halfSpread)` = $0.01 but books cash at the model
-   value and clips the negative "cost" to 0. Reported net P&L is understated by up to $12.64 per run.
-   Affected: `EXTREME_TOXICITY`, 23 of 200 stress seeds, all three policies; the artifact now shows
-   `reconciled: false` for that regime. Base-config runs reconcile to 3.1e-11 dollars.
+2. **Sub-tick liquidation was priced inconsistently** (exposed by fix 1; **fixed**, see below). When a long
+   call was worth less than one tick, `simulate.ts` executed at `max(tick, call − halfSpread)` = $0.01 but
+   booked cash at the model value and clipped the negative "cost" to 0. Booked cash and the executed price
+   disagreed by up to $12.64 per run. Affected: `EXTREME_TOXICITY`, 23 of 200 stress seeds, all three policies.
+   Base-config runs were unaffected (reconcile to 3.1e-11 dollars).
 3. **Option position limit can be exceeded by latency.** Quotes are sized against inventory at decision
    time but fill one step later. Base config: |inventory| reached 13 vs limit 12 in 12 of 3,000 runs
    (seeds 3, 115, 575, 789, 921 for symmetric policies; 575, 789 adaptive). Seed 921 is a final seed.
@@ -117,6 +117,29 @@ with no console errors. Regenerated artifact (commit `fb91988`): all P&L, interv
 stress numbers identical to the original; differences are metadata, two new evidence fields, and
 `reconciled: false` for the three `EXTREME_TOXICITY` summaries (defect 2). Tribunal verdict unchanged.
 
+Commit `a709aa6` — *liquidate sub-tick long options at zero* (owner-approved recommendation):
+
+- A long option now liquidates at `max(0, call − terminalOptionHalfSpread)`: with no bid above fair value it
+  cannot sell for a tick more than it is worth. `liquidationCost` is `midCash − actualCash` without clipping;
+  it is non-negative by construction for both long and short inventory.
+- Regression test uses **training** seed 35 under the `EXTREME_TOXICITY` parameters (terminal call below one
+  tick, all three policies long): the ledger price must be 0, the run must reconcile, and liquidation cost must
+  include the forgone model value. It failed before the fix (`actual: 0.01`) and passes after.
+
+Verification (**verified**): 48 passed / 0 failed; build ok. Evidence regenerated in commit `230a665`.
+Config hash, seed manifest, train, validation, and final results are byte-identical to the previous artifact;
+3,000 / 3,000 base runs reconcile; Tribunal still `RESEARCH PASS · DEPLOYMENT BLOCKED` (score 83).
+Only the `EXTREME_TOXICITY` stress summaries changed (final seeds 801–1000, evaluated as before, not tuned):
+
+| Policy | Mean net P&L | Median | Mean liquidation cost | Reconciled |
+| --- | --- | --- | --- | --- |
+| BASELINE | −3,433.44 → −3,434.86 | −1,127.56 → −1,133.06 | 45.85 → 47.27 | false → true |
+| DELTA_HEDGED | −171.14 → −172.55 | −176.22 (same) | 59.89 → 61.31 | false → true |
+| INVENTORY_TOXICITY_AWARE | 105.65 → 104.48 | 163.44 → 161.44 | 46.41 → 47.58 | false → true |
+
+P05, worst seed, and negative-seed rate are unchanged for all three. P&L falls slightly because the
+previous accounting kept each sub-tick call's model value as cash while charging no liquidation cost.
+
 ## Blockers / not done
 
 - Nothing pushed or deployed. Hosted preview verification remains pending (see `RELEASE_REVIEW_V2.md`).
@@ -124,9 +147,7 @@ stress numbers identical to the original; differences are metadata, two new evid
 
 ## Next specific task
 
-Decide how sub-tick liquidation should be priced (defect 2), then fix it with a regression test.
-Recommendation: sell long options at `max(0, call − halfSpread)` (no bid below fair value) and record
-the ledger price accordingly, so `liquidationCost ≥ 0` holds without clipping. This changes only
-`EXTREME_TOXICITY` stress values; record before/after in this file. After that: validate latency
-parameters (defect 4), then write a preregistered ablation protocol for the attribution question using
-fresh seeds (e.g. 1001–1400), without touching seeds 801–1000.
+Validate latency parameters (defect 4): require integer `quoteLatencySteps ≥ 0` and `hedgeLatencySteps ≥ 1`
+in `validateResearchConfig` (or make zero-latency hedges execute), with a regression test. Then write a
+preregistered ablation protocol for the attribution question using fresh seeds (e.g. 1001–1400), without
+touching seeds 801–1000. The position-limit question (defect 3) needs the owner's decision first.
