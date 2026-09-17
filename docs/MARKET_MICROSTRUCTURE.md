@@ -1,5 +1,9 @@
 # Market microstructure
 
+> **Scope note.** This document describes the V1 experiment (100 seeds, `lib/*.ts`, `benchmarks/baseline-backtest.json`).
+> It is kept for history. The shipped V2 experiment lives in `lib/research/` and `benchmarks/research-v2.json`;
+> see [`../README.md`](../README.md) and [`RESEARCH_CONSTITUTION.md`](RESEARCH_CONSTITUTION.md) for current numbers.
+
 The implemented exchange uses price-time priority, explicit order arrival/cancellation latency, partial fills, tick size, multiplier, fees, position limits, and deterministic event ordering. A price touch does not imply a fill. The baseline uses synthetic spread-dependent arrival probability `exp(-3 × spread)` because there is no calibrated market feed.
 
 The backtest now quotes and marks a Black–Scholes option fair value; the underlying GBM path is used for the option’s spot input and for a separate delta hedge. This boundary matters: the old spot-as-option implementation was economically invalid, so all benchmark artifacts were regenerated.

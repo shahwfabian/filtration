@@ -8,15 +8,27 @@ const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
 export default function StrategyPage() {
   const comparison = artifact.final.adaptiveVsBaseline;
   const counts = artifact.evidenceCounts;
+  const attribution = artifact.train.attribution;
   const finalReconciled = artifact.final.summaries.every(summary => summary.reconciled);
   return <LabShell activePath="/strategy" eyebrow="POLICY COMPARISON / COMMON RANDOM NUMBERS" title="Policy Comparison" status="ARTIFACT-BACKED">
-    <section className="tribunal-hero panel"><div><p className="eyebrow">HELD-OUT RESULT</p><h2>{money(comparison.observedMeanDifference)} paired mean improvement</h2><p>Every policy faces the same 200 final scenarios. The comparison is paired by seed and includes fees, spread, impact, latency, and mandatory terminal liquidation.</p></div><div className="verdict-score"><strong>{pct(comparison.probabilityOfImprovement)}</strong><span>seed-level win frequency</span></div></section>
+    <section className="tribunal-hero panel"><div><p className="eyebrow">HELD-OUT RESULT</p><h2>{money(comparison.observedMeanDifference)} paired mean improvement</h2><p>Every policy trades the same {artifact.seedManifest.final.length} held-out sessions, so each session gives one paired difference. Net P&L includes option fees, hedge spread, impact, latency, and forced liquidation at the end.</p></div><div className="verdict-score"><strong>{pct(comparison.probabilityOfImprovement)}</strong><span>sessions where adaptive beat unhedged</span></div></section>
     <section className="panel strategy-table">
-      <div className="panel-head"><span>FINAL POLICY PANEL</span><em>{artifact.seedManifest.final.length} UNTOUCHED SEEDS</em></div>
+      <div className="panel-head"><span>FINAL POLICY PANEL</span><em>{artifact.seedManifest.final.length} HELD-OUT SESSIONS</em></div>
       <div className="strategy-head"><span>POLICY</span><span>MEAN NET P&amp;L</span><span>P05 / WORST</span><span>NEGATIVE</span><span>MAX |Δ|</span></div>
       {artifact.final.summaries.map(summary => <div className={summary.policy === "INVENTORY_TOXICITY_AWARE" ? "strategy-row selected" : "strategy-row"} key={summary.policy}>
         <span><b>{labels[summary.policy]}</b><small>{summary.policy}</small></span><strong>{money(summary.meanNetPnl)}</strong><strong className="negative">{money(summary.p05NetPnl)}<small>{money(summary.worstNetPnl)} worst</small></strong><span>{pct(summary.negativeSeedRate)}</span><span>{summary.meanMaxAbsDelta.toFixed(1)}</span>
       </div>)}
+    </section>
+    <section className="panel attribution-table">
+      <div className="panel-head"><span>WHERE THE IMPROVEMENT COMES FROM</span><em>TRAINING SESSIONS ONLY · {attribution.seeds} PAIRED SEEDS</em></div>
+      <div className="attribution-head"><span>QUESTION</span><span>MEAN DIFFERENCE</span><span>95% PAIRED CI</span><span>WINS</span></div>
+      {attribution.steps.map(step => <div className="attribution-row" key={step.id}>
+        <span><b>{step.question}</b><small>{step.candidate} ({money(step.candidateMeanNetPnl)}) minus {step.benchmark} ({money(step.benchmarkMeanNetPnl)})</small></span>
+        <strong className={step.confidenceInterval[0] > 0 ? "ok" : ""}>{money(step.observedMeanDifference)}</strong>
+        <strong>{money(step.confidenceInterval[0])} to {money(step.confidenceInterval[1])}</strong>
+        <span>{pct(step.probabilityOfImprovement)}</span>
+      </div>)}
+      <p className="attribution-note">Reading: hedging and the adaptive policy's wider average quote explain the gain. A symmetric hedged quote of the same average width (±{money(attribution.matchedHalfSpread)}) is statistically indistinguishable, and the inventory skew is smaller than one tick. This breakdown uses development seeds only; the held-out sessions were not reused to test it.</p>
     </section>
     <div className="metrics">
       <Metric label="PAIRED 95% CI" value={money(comparison.confidenceInterval[0])} sub={`to ${money(comparison.confidenceInterval[1])}`} tone="teal" />

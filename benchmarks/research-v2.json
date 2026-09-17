@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-17T17:45:15.950Z",
-  "codeCommit": "a709aa6fcc901d0341e28c554d1bb53c85c9e875",
+  "generatedAt": "2026-09-17T17:53:06.983Z",
+  "codeCommit": "f562143338a36c7ec7568bcb457ce9b262b6cce6",
   "branch": "claude/baseline-audit",
   "syntheticOnly": true,
   "hypothesis": "Inventory- and toxicity-aware option quotes improve paired terminal P&L and reduce Greek exposure relative to a symmetric unhedged benchmark under the declared synthetic scenario family.",
@@ -1127,6 +1127,74 @@
       "resamples": 2000,
       "pairingPreserved": true,
       "nullHypothesis": "No candidate has positive expected net-P&L improvement over the declared benchmark in the synthetic scenario family"
+    },
+    "attribution": {
+      "split": "train",
+      "seeds": 600,
+      "exploratory": true,
+      "matchedHalfSpread": 0.18,
+      "steps": [
+        {
+          "id": "HEDGING",
+          "question": "What does frictional delta hedging add to symmetric quoting?",
+          "candidate": "Symmetric delta-hedged",
+          "benchmark": "Symmetric unhedged",
+          "candidateMeanNetPnl": 133.91209559802454,
+          "benchmarkMeanNetPnl": 105.03089923849463,
+          "observedMeanDifference": 28.88119635952999,
+          "confidenceInterval": [
+            12.330575283708162,
+            46.888892844528755
+          ],
+          "probabilityOfImprovement": 0.5166666666666667,
+          "resamples": 2000
+        },
+        {
+          "id": "ADAPTIVE_QUOTING",
+          "question": "What do inventory skew and toxicity premiums add to a hedged book?",
+          "candidate": "Inventory + toxicity aware",
+          "benchmark": "Symmetric delta-hedged",
+          "candidateMeanNetPnl": 180.9986200893235,
+          "benchmarkMeanNetPnl": 133.91209559802454,
+          "observedMeanDifference": 47.086524491298825,
+          "confidenceInterval": [
+            43.53877442305891,
+            50.830106388341186
+          ],
+          "probabilityOfImprovement": 0.865,
+          "resamples": 2000
+        },
+        {
+          "id": "INVENTORY_SKEW",
+          "question": "What does the inventory skew add on its own?",
+          "candidate": "Inventory + toxicity aware",
+          "benchmark": "Same policy, no inventory skew",
+          "candidateMeanNetPnl": 180.9986200893235,
+          "benchmarkMeanNetPnl": 181.06850978300838,
+          "observedMeanDifference": -0.06988969368483341,
+          "confidenceInterval": [
+            -0.1995415090550849,
+            0.06202193240614659
+          ],
+          "probabilityOfImprovement": 0.11333333333333333,
+          "resamples": 2000
+        },
+        {
+          "id": "BEYOND_SPREAD_WIDTH",
+          "question": "Does directional quoting beat a symmetric hedged quote of the same average width?",
+          "candidate": "Inventory + toxicity aware",
+          "benchmark": "Symmetric delta-hedged, ±$0.18",
+          "candidateMeanNetPnl": 180.9986200893235,
+          "benchmarkMeanNetPnl": 182.47781706263797,
+          "observedMeanDifference": -1.4791969733145167,
+          "confidenceInterval": [
+            -4.618653806214158,
+            1.4712117532176243
+          ],
+          "probabilityOfImprovement": 0.49,
+          "resamples": 2000
+        }
+      ]
     }
   },
   "validation": {

@@ -14,6 +14,9 @@ type EvidenceArtifact = {
   baseConfig: Record<string, number>;
   configHash: string;
   seedManifest: { total: number; train: number[]; validation: number[]; final: number[]; hash: string };
+  train?: {
+    attribution?: { seeds: number; steps: Array<{ id: string; observedMeanDifference: number; confidenceInterval: number[] }> };
+  };
   final: {
     summaries: Array<{ policy: string; negativeSeedRate: number; reconciled: boolean }>;
     adaptiveVsBaseline: { confidenceInterval: number[]; probabilityOfImprovement: number };
@@ -41,6 +44,9 @@ export function adjudicate(artifact: EvidenceArtifact) {
   const adaptiveStress = artifact.stresses.map(stress => ({ name: stress.name, summary: stress.summaries.find(row => row.policy === "INVENTORY_TOXICITY_AWARE")! }));
   const hostile = adaptiveStress.filter(row => row.summary.negativeSeedRate >= 0.25 || row.summary.p05NetPnl < -100);
   if (hostile.length) add({ id: "T-004", severity: "HIGH", title: "Material hostile-regime fragility", evidence: hostile.map(row => `${row.name}: ${(row.summary.negativeSeedRate * 100).toFixed(1)}% negative, p05 ${row.summary.p05NetPnl.toFixed(2)}`).join("; "), remediation: "Add hard risk limits and reject deployment outside calibrated operating conditions." });
+  const attribution = artifact.train?.attribution;
+  const unattributed = (attribution?.steps ?? []).filter(step => ["INVENTORY_SKEW", "BEYOND_SPREAD_WIDTH"].includes(step.id) && step.confidenceInterval[0] <= 0);
+  if (unattributed.length) add({ id: "T-006", severity: "MEDIUM", title: "Improvement is not attributable to the adaptive mechanism", evidence: `Train split (${attribution!.seeds} seeds): ${unattributed.map(step => `${step.id} ${step.observedMeanDifference.toFixed(2)} [${step.confidenceInterval[0].toFixed(2)}, ${step.confidenceInterval[1].toFixed(2)}]`).join("; ")}.`, remediation: "Describe the gain as hedging plus spread width, or preregister a revised adaptive policy and test it on fresh held-out seeds." });
   if (artifact.syntheticOnly) add({ id: "T-005", severity: "INFO", title: "Evidence is simulator-bound", evidence: "All displayed outcomes come from a declared synthetic generator.", remediation: "Add historical event replay and forward paper trading before making any empirical market claim." });
   const score = Math.max(0, 100 - findings.reduce((total, finding) => total + weights[finding.severity], 0));
   const verdict = findings.some(finding => finding.severity === "CRITICAL") ? "BLOCKED" : findings.some(finding => finding.severity === "HIGH") ? "RESEARCH PASS · DEPLOYMENT BLOCKED" : "RESEARCH PASS";

@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { writeFile } from "node:fs/promises";
 
 import { defaultOptionSpec, defaultResearchConfig } from "../lib/research/config.ts";
+import { attributionDiagnostic } from "../lib/research/attribution.ts";
 import { RECONCILIATION_TOLERANCE } from "../lib/research/simulate.ts";
 import {
   deriveEvidenceCounts,
@@ -112,6 +113,7 @@ const artifact = {
   train: {
     summaries: train.summaries,
     pairedRealityCheck: pairedRealityCheck(train),
+    attribution: attributionDiagnostic(trainSeeds),
   },
   validation: {
     summaries: validation.summaries,

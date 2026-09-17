@@ -1,5 +1,9 @@
 # Experiment protocol
 
+> **Scope note.** This document describes the V1 experiment (100 seeds, `lib/*.ts`, `benchmarks/baseline-backtest.json`).
+> It is kept for history. The shipped V2 experiment lives in `lib/research/` and `benchmarks/research-v2.json`;
+> see [`../README.md`](../README.md) and [`RESEARCH_CONSTITUTION.md`](RESEARCH_CONSTITUTION.md) for current numbers.
+
 Preregister the hypothesis, scenario, parameters and seed before viewing results. Preserve the decision-time information set, action, book state, inventory, model assumptions and later markout. Compare strategies on identical seeded event streams. Report costs, fills, drawdown, inventory, Greeks, regret and uncertainty; do not annualize short intraday Sharpe ratios.
 
 The corrected benchmark uses option fair value for option quotes and marks, with a separate underlying hedge book. Across 100 synthetic seeds, delta hedging reduces mean maximum residual delta from 458.26 to 0.49 and improves the 0.50-spread worst seed from -$21,053.45 to -$1,940.12 at $25.26 mean hedge fees. Adverse-aware widening produces $643.88 mean net P&L and -$734.55 worst seed. These are risk/cost diagnostics, not profitability claims.

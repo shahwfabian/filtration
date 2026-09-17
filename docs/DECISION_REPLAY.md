@@ -1,5 +1,9 @@
 # Decision Autopsy
 
+> **Scope note.** This document describes the V1 experiment (100 seeds, `lib/*.ts`, `benchmarks/baseline-backtest.json`).
+> It is kept for history. The shipped V2 experiment lives in `lib/research/` and `benchmarks/research-v2.json`;
+> see [`../README.md`](../README.md) and [`RESEARCH_CONSTITUTION.md`](RESEARCH_CONSTITUTION.md) for current numbers.
+
 Decision replay preserves two distinct records:
 
 1. `DecisionInformation`: the mid, inventory, base spread, volatility, and posterior available before the action.
