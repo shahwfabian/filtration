@@ -186,13 +186,14 @@ export function simulatePolicy(scenario: Scenario, policy: PolicyKind): Simulati
 
   if (optionInventory !== 0) {
     const midCash = optionInventory * terminalAnalytics.call * option.multiplier;
+    // A long option worth less than the half-spread has no bid above zero; it cannot sell for a tick above value.
     const actualPrice = optionInventory > 0
-      ? Math.max(config.optionTickSize, terminalAnalytics.call - config.terminalOptionHalfSpread)
+      ? Math.max(0, terminalAnalytics.call - config.terminalOptionHalfSpread)
       : terminalAnalytics.call + config.terminalOptionHalfSpread;
     const actualCash = optionInventory * actualPrice * option.multiplier;
     const fee = Math.abs(optionInventory) * config.optionFeePerContract;
     optionTradeCash += midCash;
-    liquidationCost += Math.max(0, midCash - actualCash);
+    liquidationCost += midCash - actualCash;
     optionFees += fee;
     ledger.push({ time: config.steps, instrument: "OPTION", kind: "LIQUIDATION", quantity: -optionInventory, price: actualPrice, multiplier: option.multiplier, fee });
     optionInventory = 0;

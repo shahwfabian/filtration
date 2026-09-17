@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { defaultOptionSpec, defaultResearchConfig, validateResearchConfig } from "../lib/research/config.ts";
-import { makeQuote } from "../lib/research/policy.ts";
+import { makeQuote, optionAnalytics } from "../lib/research/policy.ts";
 import { generateScenario } from "../lib/research/scenario.ts";
 import { reconcileLedger, simulatePolicy } from "../lib/research/simulate.ts";
 
@@ -115,6 +115,32 @@ test("reconciliation fails when cash, a fill, or terminal liquidation is misrepo
   assert.ok(openInventory !== 0 || result.records.at(-1).underlyingInventory !== 0, "fixture must end with open inventory before liquidation");
   assert.equal(liquidationCheck.optionPosition, openInventory);
   assert.equal(liquidationCheck.reconciled, false);
+});
+
+test("long options worth less than the terminal half-spread liquidate at zero without hidden cash", () => {
+  // Training seed 35 under the EXTREME_TOXICITY stress family ends long calls priced below one tick.
+  const config = {
+    ...defaultResearchConfig,
+    informedProbability: 0.7,
+    regimePersistence: 0.96,
+    informedReturnSignal: 2.5,
+    informedVolatilitySignal: 0.35,
+    arrivalProbability: 0.65,
+  };
+  const scenario = generateScenario(35, config, defaultOptionSpec);
+  const terminal = scenario.states.at(-1);
+  const terminalCall = optionAnalytics({ time: config.steps, spot: terminal.spot, volatility: terminal.volatility, config, option: defaultOptionSpec }).call;
+  assert.ok(terminalCall < config.optionTickSize, `fixture must end with a sub-tick call, received ${terminalCall}`);
+
+  for (const policy of ["BASELINE", "DELTA_HEDGED", "INVENTORY_TOXICITY_AWARE"]) {
+    const result = simulatePolicy(scenario, policy);
+    const openInventory = result.records.at(-1).optionInventory;
+    assert.ok(openInventory > 0, `${policy} fixture must end long options`);
+    const liquidation = result.ledger.find(fill => fill.instrument === "OPTION" && fill.kind === "LIQUIDATION");
+    assert.equal(liquidation.price, 0);
+    assert.equal(result.reconciled, true, `${policy} reconciliation error ${result.reconciliationError}`);
+    assert.ok(result.liquidationCost >= openInventory * terminalCall * defaultOptionSpec.multiplier - 1e-9);
+  }
 });
 
 test("frictional delta hedging reduces exposure and incurs explicit costs", () => {
