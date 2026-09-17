@@ -48,3 +48,10 @@ Scripts use `node --experimental-strip-types` to import `.ts` directly; that nee
 - Synthetic results are not historical alpha or live profitability; say so wherever they appear.
 - Regenerate the artifact from a committed tree so `codeCommit` identifies the code that produced it.
 - No secrets, brokerage connections, pushes, merges, or deployments without the owner's instruction.
+
+## Attribution diagnostic
+
+`lib/research/attribution.ts` decomposes the adaptive policy's improvement on the **training** split only
+(fixed variants; no selection). The Tribunal turns it into finding `T-006`. Current evidence: the gain is
+hedging plus spread width; inventory skew and directional widening are not separately supported. State that
+honestly wherever the headline `$72.91` appears. Re-testing a revised policy needs fresh seeds, not 801-1000.

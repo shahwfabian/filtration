@@ -140,9 +140,33 @@ Only the `EXTREME_TOXICITY` stress summaries changed (final seeds 801–1000, ev
 P05, worst seed, and negative-seed rate are unchanged for all three. P&L falls slightly because the
 previous accounting kept each sub-tick call's model value as cash while charging no liquidation cost.
 
+Commit `680e9e1` — *explain the result in plain language and attribute the improvement*:
+
+- New `lib/research/attribution.ts`: a train-split decomposition (hedging; adaptive quoting over a hedged
+  book; inventory skew alone; adaptive versus a symmetric hedged quote matched to the adaptive policy's mean
+  half-spread, $0.18). Stored at `train.attribution` in the artifact. Fixed variants only; nothing is selected
+  or tuned, and the final seeds are not reused.
+- `lib/research/tribunal.ts`: finding **T-006** (MEDIUM) fires when the inventory-skew or width-matched
+  interval includes zero. It fires on the current evidence, so the score drops 83 → 75; verdict unchanged.
+- Interface: overview rewritten as plain-language findings; Policy Comparison shows the attribution table;
+  `/inference` is labelled as the training split; the last hard-coded counts are derived; 8-9px labels raised
+  to 10px and new sections given mobile rules.
+- Docs: README carries the attribution table and pnpm commands; `RESUME_EVIDENCE.md` rewritten for V2 with the
+  V1 bullets marked superseded; V1-only docs carry a scope note; AI assistance disclosed in README.
+
+Verification (**verified**): 49 passed / 0 failed; build ok; overview, policy, and tribunal pages checked in a
+dev server; no horizontal overflow at 375 px. Train/validation/final results unchanged.
+
+**Attribution results (train seeds 1-600, exploratory):** hedging +$28.88 [$12.33, $46.89]; adaptive quoting
+over hedged +$47.09 [$43.54, $50.83]; inventory skew alone −$0.07 [−$0.20, $0.06]; adaptive versus symmetric
+hedged at ±$0.18 −$1.48 [−$4.62, $1.47].
+
 ## Blockers / not done
 
-- Nothing pushed or deployed. Hosted preview verification remains pending (see `RELEASE_REVIEW_V2.md`).
+- Nothing pushed as of commit `680e9e1`. Hosted verification pending.
+- `filtration.vercel.app` is an unrelated third-party site. The owner's Vercel projects (`filtration`,
+  `project-tbd` under `shahwfabians-projects`) are behind Vercel Authentication, so the public production URL
+  was not determined from this machine.
 - Node 22 (CI version) not run locally; CI not triggered.
 
 ## Next specific task
