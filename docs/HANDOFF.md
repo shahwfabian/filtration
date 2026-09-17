@@ -113,7 +113,7 @@ Commit `506e1ae` — *reconcile research runs from an execution ledger*:
   must fail; tampered panel rows must lower evidence counts). On the original commit these files fail to load.
 
 Verification (**verified**): 47 passed / 0 failed; build ok; `/` and `/strategy` rendered in a local dev server
-with no console errors. Regenerated artifact (commit that follows `506e1ae`): all P&L, interval, split, and
+with no console errors. Regenerated artifact (commit `fb91988`): all P&L, interval, split, and
 stress numbers identical to the original; differences are metadata, two new evidence fields, and
 `reconciled: false` for the three `EXTREME_TOXICITY` summaries (defect 2). Tribunal verdict unchanged.
 
