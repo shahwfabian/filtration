@@ -2,6 +2,7 @@ import { DirectionalToxicityFilter } from "./toxicity.ts";
 import { makeQuote, optionAnalytics } from "./policy.ts";
 import type {
   HedgeOrder,
+  LedgerFill,
   PolicyKind,
   Quote,
   Scenario,
@@ -10,6 +11,31 @@ import type {
 } from "./types.ts";
 
 const sum = (values: number[]) => values.reduce((total, value) => total + value, 0);
+
+export const RECONCILIATION_TOLERANCE = 1e-6;
+
+// Rebuilds positions and cash from individual executions, independently of the
+// running counters used to compute the reported P&L components.
+export function reconcileLedger(ledger: LedgerFill[], reportedNetPnl: number) {
+  const position = (instrument: LedgerFill["instrument"]) => sum(
+    ledger.filter(fill => fill.instrument === instrument).map(fill => fill.quantity),
+  );
+  const optionPosition = position("OPTION");
+  const underlyingPosition = position("UNDERLYING");
+  const ledgerCash = sum(ledger.map(fill => -fill.quantity * fill.price * fill.multiplier - fill.fee));
+  const error = ledgerCash - reportedNetPnl;
+  return {
+    optionPosition,
+    underlyingPosition,
+    ledgerCash,
+    error,
+    reconciled: Number.isFinite(reportedNetPnl)
+      && Number.isFinite(error)
+      && optionPosition === 0
+      && underlyingPosition === 0
+      && Math.abs(error) <= RECONCILIATION_TOLERANCE,
+  };
+}
 
 function hedgeExecutionPrice(spot: number, quantity: number, halfSpreadBps: number, impactBpsPerHundred: number) {
   const direction = Math.sign(quantity);
@@ -23,6 +49,7 @@ export function simulatePolicy(scenario: Scenario, policy: PolicyKind): Simulati
   const quoteHistory: Quote[] = [];
   const hedgeOrders: HedgeOrder[] = [];
   const records: StepRecord[] = [];
+  const ledger: LedgerFill[] = [];
   const hedged = policy !== "BASELINE";
 
   let optionInventory = 0;
@@ -53,9 +80,11 @@ export function simulatePolicy(scenario: Scenario, policy: PolicyKind): Simulati
         config.underlyingHalfSpreadBps,
         config.hedgeImpactBpsPerHundredShares,
       );
+      const fee = Math.abs(order.quantity) * config.hedgeFeePerShare;
       hedgeTradeCash -= order.quantity * executionPrice;
       underlyingInventory += order.quantity;
-      hedgeFees += Math.abs(order.quantity) * config.hedgeFeePerShare;
+      hedgeFees += fee;
+      ledger.push({ time, instrument: "UNDERLYING", kind: "HEDGE", quantity: order.quantity, price: executionPrice, multiplier: 1, fee });
     }
 
     const posterior = filter.posterior();
@@ -98,10 +127,12 @@ export function simulatePolicy(scenario: Scenario, policy: PolicyKind): Simulati
     }
 
     if (optionFill !== 0 && optionFillPrice !== null) {
+      const fee = Math.abs(optionFill) * config.optionFeePerContract;
       optionInventory += optionFill;
       optionTradeCash -= optionFill * optionFillPrice * option.multiplier;
-      optionFees += Math.abs(optionFill) * config.optionFeePerContract;
+      optionFees += fee;
       optionFills += Math.abs(optionFill);
+      ledger.push({ time, instrument: "OPTION", kind: "CUSTOMER", quantity: optionFill, price: optionFillPrice, multiplier: option.multiplier, fee });
     }
 
     const pendingHedgeQuantity = sum(hedgeOrders.filter(order => order.executeAt > time).map(order => order.quantity));
@@ -159,9 +190,11 @@ export function simulatePolicy(scenario: Scenario, policy: PolicyKind): Simulati
       ? Math.max(config.optionTickSize, terminalAnalytics.call - config.terminalOptionHalfSpread)
       : terminalAnalytics.call + config.terminalOptionHalfSpread;
     const actualCash = optionInventory * actualPrice * option.multiplier;
+    const fee = Math.abs(optionInventory) * config.optionFeePerContract;
     optionTradeCash += midCash;
     liquidationCost += Math.max(0, midCash - actualCash);
-    optionFees += Math.abs(optionInventory) * config.optionFeePerContract;
+    optionFees += fee;
+    ledger.push({ time: config.steps, instrument: "OPTION", kind: "LIQUIDATION", quantity: -optionInventory, price: actualPrice, multiplier: option.multiplier, fee });
     optionInventory = 0;
   }
 
@@ -175,17 +208,16 @@ export function simulatePolicy(scenario: Scenario, policy: PolicyKind): Simulati
       config.hedgeImpactBpsPerHundredShares,
     );
     const actualCash = -closeQuantity * actualPrice;
+    const fee = Math.abs(closeQuantity) * config.hedgeFeePerShare;
     hedgeTradeCash += midCash;
     liquidationCost += Math.max(0, midCash - actualCash);
-    hedgeFees += Math.abs(closeQuantity) * config.hedgeFeePerShare;
+    hedgeFees += fee;
+    ledger.push({ time: config.steps, instrument: "UNDERLYING", kind: "LIQUIDATION", quantity: closeQuantity, price: actualPrice, multiplier: 1, fee });
     underlyingInventory = 0;
   }
 
   const netPnl = optionTradeCash + hedgeTradeCash - optionFees - hedgeFees - liquidationCost;
-  const reconciled = Number.isFinite(netPnl)
-    && optionInventory === 0
-    && underlyingInventory === 0
-    && Math.abs(netPnl - (optionTradeCash + hedgeTradeCash - optionFees - hedgeFees - liquidationCost)) < 1e-8;
+  const reconciliation = reconcileLedger(ledger, netPnl);
 
   return {
     seed: scenario.seed,
@@ -203,9 +235,11 @@ export function simulatePolicy(scenario: Scenario, policy: PolicyKind): Simulati
     maxAbsGamma,
     maxAbsVega,
     meanFullSpread: fullSpreads.length ? sum(fullSpreads) / fullSpreads.length : 0,
-    finalOptionInventory: 0,
-    finalUnderlyingInventory: 0,
-    reconciled,
+    finalOptionInventory: reconciliation.optionPosition,
+    finalUnderlyingInventory: reconciliation.underlyingPosition,
+    reconciliationError: reconciliation.error,
+    reconciled: reconciliation.reconciled,
+    ledger,
     records,
   };
 }

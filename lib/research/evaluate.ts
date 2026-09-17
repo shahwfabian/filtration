@@ -76,6 +76,24 @@ export function runResearchPanel(
   return { seeds: [...seeds], rows, summaries };
 }
 
+// Counts are measured from simulated rows so the Tribunal cannot be satisfied by constants.
+export function deriveEvidenceCounts(panels: ResearchPanel[], manifestSeeds: number[]) {
+  const allRows = panels.flatMap(panel => researchPolicies.flatMap(policy => panel.rows[policy]));
+  return {
+    expectedRunCount: manifestSeeds.length * researchPolicies.length,
+    reconciledRunCount: allRows.filter(row => row.reconciled).length,
+    terminalFlatRunCount: allRows.filter(row => row.finalOptionInventory === 0 && row.finalUnderlyingInventory === 0).length,
+    maxAbsReconciliationError: Math.max(0, ...allRows.map(row => Math.abs(row.reconciliationError))),
+    policySeedCount: Object.fromEntries(researchPolicies.map(
+      policy => [policy, panels.reduce((count, panel) => count + panel.rows[policy].length, 0)],
+    )) as Record<PolicyKind, number>,
+    policiesUseCommonSeeds: panels.every(panel => researchPolicies.every(
+      policy => panel.rows[policy].length === panel.seeds.length
+        && panel.rows[policy].every((row, index) => row.seed === panel.seeds[index]),
+    )),
+  };
+}
+
 export type PairedComparison = {
   candidate: PolicyKind;
   benchmark: PolicyKind;

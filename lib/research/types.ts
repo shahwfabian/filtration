@@ -112,6 +112,16 @@ export type StepRecord = {
   cash: number;
 };
 
+export type LedgerFill = {
+  time: number;
+  instrument: "OPTION" | "UNDERLYING";
+  kind: "CUSTOMER" | "HEDGE" | "LIQUIDATION";
+  quantity: number;
+  price: number;
+  multiplier: number;
+  fee: number;
+};
+
 export type SimulationResult = {
   seed: number;
   policy: PolicyKind;
@@ -128,9 +138,11 @@ export type SimulationResult = {
   maxAbsGamma: number;
   maxAbsVega: number;
   meanFullSpread: number;
-  finalOptionInventory: 0;
-  finalUnderlyingInventory: 0;
+  finalOptionInventory: number;
+  finalUnderlyingInventory: number;
+  reconciliationError: number;
   reconciled: boolean;
+  ledger: LedgerFill[];
   records: StepRecord[];
 };
 

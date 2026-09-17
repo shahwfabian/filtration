@@ -10,6 +10,8 @@ export default function OverviewPage() {
   const adaptive = artifact.final.summaries.find(summary => summary.policy === "INVENTORY_TOXICITY_AWARE")!;
   const baseline = artifact.final.summaries.find(summary => summary.policy === "BASELINE")!;
   const comparison = artifact.final.adaptiveVsBaseline;
+  const counts = artifact.evidenceCounts;
+  const allReconciled = counts.reconciledRunCount === counts.expectedRunCount;
   return <LabShell activePath="/" eyebrow="SYNTHETIC OPTIONS MARKET MAKING / RESEARCH PROTOCOL V2" title="Research Overview" status="EVIDENCE GENERATED">
     <section className="research-hero panel">
       <div>
@@ -47,6 +49,6 @@ export default function OverviewPage() {
       <article className="panel research-card"><span>INFERENCE</span><h3>Paired evidence</h3><p>Policy differences retain common seed indices during resampling. The declared benchmark remains visible.</p></article>
       <article className="panel research-card"><span>SCOPE</span><h3>Synthetic by construction</h3><p>The results evaluate mechanisms inside the declared simulator. They do not establish market profitability.</p></article>
     </section>
-    <p className="footnote"><span>AUTHOR · SHAH WASIF FABIAN</span><span>CONFIG · {artifact.configHash.slice(0, 12)}</span><span>ALL RUNS · <b className="ok">RECONCILED</b></span></p>
+    <p className="footnote"><span>AUTHOR · SHAH WASIF FABIAN</span><span>CONFIG · {artifact.configHash.slice(0, 12)}</span><span>RECONCILED RUNS · <b className={allReconciled ? "ok" : "negative"}>{counts.reconciledRunCount.toLocaleString()} / {counts.expectedRunCount.toLocaleString()}</b></span></p>
   </LabShell>;
 }

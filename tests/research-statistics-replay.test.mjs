@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { defaultOptionSpec, defaultResearchConfig } from "../lib/research/config.ts";
-import { pairedBootstrapComparison, pairedRealityCheck, runResearchPanel } from "../lib/research/evaluate.ts";
+import { deriveEvidenceCounts, pairedBootstrapComparison, pairedRealityCheck, runResearchPanel } from "../lib/research/evaluate.ts";
 import { auditScenarioDecision, evaluateCounterfactual, replayActions } from "../lib/research/replay.ts";
 import { generateScenario } from "../lib/research/scenario.ts";
 
@@ -15,6 +15,28 @@ test("paired comparisons use seed-aligned policy differences", () => {
   ) / panel.seeds.length;
   assert.ok(Math.abs(comparison.observedMeanDifference - directMean) < 1e-10);
   assert.equal(comparison.resamples, 500);
+});
+
+test("evidence counts are measured from simulated rows and detect a failed run", () => {
+  const seeds = [1, 2, 3, 4];
+  const panel = runResearchPanel(seeds);
+  const clean = deriveEvidenceCounts([panel], seeds);
+  assert.equal(clean.expectedRunCount, 12);
+  assert.equal(clean.reconciledRunCount, 12);
+  assert.equal(clean.terminalFlatRunCount, 12);
+  assert.equal(clean.policiesUseCommonSeeds, true);
+  assert.ok(clean.maxAbsReconciliationError < 1e-6);
+
+  const tampered = structuredClone(panel);
+  tampered.rows.DELTA_HEDGED[1].reconciled = false;
+  tampered.rows.BASELINE[2].finalOptionInventory = 1;
+  tampered.rows.INVENTORY_TOXICITY_AWARE[3].seed = 99;
+  tampered.rows.INVENTORY_TOXICITY_AWARE.pop();
+  const counts = deriveEvidenceCounts([tampered], seeds);
+  assert.equal(counts.reconciledRunCount, 10);
+  assert.equal(counts.terminalFlatRunCount, 10);
+  assert.equal(counts.policySeedCount.INVENTORY_TOXICITY_AWARE, 3);
+  assert.equal(counts.policiesUseCommonSeeds, false);
 });
 
 test("Reality Check declares a benchmark and preserves pairing", () => {

@@ -7,6 +7,8 @@ const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
 
 export default function StrategyPage() {
   const comparison = artifact.final.adaptiveVsBaseline;
+  const counts = artifact.evidenceCounts;
+  const finalReconciled = artifact.final.summaries.every(summary => summary.reconciled);
   return <LabShell activePath="/strategy" eyebrow="POLICY COMPARISON / COMMON RANDOM NUMBERS" title="Policy Comparison" status="ARTIFACT-BACKED">
     <section className="tribunal-hero panel"><div><p className="eyebrow">HELD-OUT RESULT</p><h2>{money(comparison.observedMeanDifference)} paired mean improvement</h2><p>Every policy faces the same 200 final scenarios. The comparison is paired by seed and includes fees, spread, impact, latency, and mandatory terminal liquidation.</p></div><div className="verdict-score"><strong>{pct(comparison.probabilityOfImprovement)}</strong><span>seed-level win frequency</span></div></section>
     <section className="panel strategy-table">
@@ -20,7 +22,7 @@ export default function StrategyPage() {
       <Metric label="PAIRED 95% CI" value={money(comparison.confidenceInterval[0])} sub={`to ${money(comparison.confidenceInterval[1])}`} tone="teal" />
       <Metric label="RESAMPLES" value={comparison.resamples.toLocaleString()} sub="paired bootstrap indices" />
       <Metric label="DECLARED BENCHMARK" value="BASELINE" sub="fixed before inference" tone="gold" />
-      <Metric label="RECONCILIATION" value="PASSED" sub="all policy runs" tone="teal" />
+      <Metric label="RECONCILIATION" value={finalReconciled ? "PASSED" : "FAILED"} sub={`${counts.reconciledRunCount.toLocaleString()} / ${counts.expectedRunCount.toLocaleString()} ledger-checked runs`} tone={finalReconciled ? "teal" : "gold"} />
     </div>
     <p className="footnote"><span>SOURCE · benchmarks/research-v2.json</span><span>CONFIG · {artifact.configHash.slice(0, 12)}</span><span>SYNTHETIC MECHANISM TEST</span></p>
   </LabShell>;

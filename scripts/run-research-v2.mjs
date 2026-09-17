@@ -3,7 +3,9 @@ import { execFileSync } from "node:child_process";
 import { writeFile } from "node:fs/promises";
 
 import { defaultOptionSpec, defaultResearchConfig } from "../lib/research/config.ts";
+import { RECONCILIATION_TOLERANCE } from "../lib/research/simulate.ts";
 import {
+  deriveEvidenceCounts,
   pairedBootstrapComparison,
   pairedRealityCheck,
   researchPolicies,
@@ -87,8 +89,7 @@ const stresses = stressFamilies.map(stress => ({
 }));
 
 const panels = [train, validation, final];
-const expectedRunCount = seeds.length * researchPolicies.length;
-const allRows = panels.flatMap(panel => researchPolicies.flatMap(policy => panel.rows[policy]));
+const { policiesUseCommonSeeds, ...evidenceCounts } = deriveEvidenceCounts(panels, seeds);
 
 const artifact = {
   schemaVersion: 2,
@@ -122,19 +123,12 @@ const artifact = {
     hedgedVsBaseline: pairedBootstrapComparison(final, "DELTA_HEDGED"),
   },
   stresses,
-  evidenceCounts: {
-    expectedRunCount,
-    reconciledRunCount: allRows.filter(row => row.reconciled).length,
-    terminalFlatRunCount: allRows.filter(row => row.finalOptionInventory === 0 && row.finalUnderlyingInventory === 0).length,
-    policySeedCount: Object.fromEntries(researchPolicies.map(policy => [policy, seeds.length])),
-  },
+  evidenceCounts: { ...evidenceCounts, reconciliationTolerance: RECONCILIATION_TOLERANCE },
   invariants: {
-    allRunsReconciled: [train, validation, final].every(panel => panel.summaries.every(summary => summary.reconciled)),
-    policiesUseCommonSeeds: true,
+    allRunsReconciled: evidenceCounts.reconciledRunCount === evidenceCounts.expectedRunCount,
+    policiesUseCommonSeeds,
     finalSeedsDisjoint: !finalSeeds.some(seed => trainSeeds.includes(seed) || validationSeeds.includes(seed)),
-    terminalInventoryLiquidated: [train, validation, final].every(panel => researchPolicies.every(
-      policy => panel.rows[policy].every(row => row.finalOptionInventory === 0 && row.finalUnderlyingInventory === 0),
-    )),
+    terminalInventoryLiquidated: evidenceCounts.terminalFlatRunCount === evidenceCounts.expectedRunCount,
     pairedBootstrapPreserved: true,
   },
 };
